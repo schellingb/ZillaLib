@@ -39,7 +39,7 @@ struct ZL_Font_Impl : ZL_Impl, ZL_Font_Impl_Settings
 	int limitCount;
 	int charLimit;
 	bool draw_at_baseline;
-	ZL_Font_Impl(bool draw_at_baseline) : fCharSpacing(0), fLineSpacing(0), fLineHeight(0), fSpaceWidth(0), limitCount(0), draw_at_baseline(draw_at_baseline) { }
+	ZL_Font_Impl(bool draw_at_baseline) : fCharSpacing(0), fLineSpacing(0), fLineHeight(0), fSpaceWidth(0), limitCount(0), charLimit(-1), draw_at_baseline(draw_at_baseline) { }
 	virtual ~ZL_Font_Impl() {}
 
 	virtual void DoDraw(scalar x, scalar y, const char *text, scalar scalew, scalar scaleh, const ZL_Color &color) = 0;
@@ -182,6 +182,7 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 		vbox[1] = vbox[3] = y - lh*s(0.2); //bottom
 		vbox[0] = vbox[4] = x;             //left
 		int v = 0;
+		int charIndex = 0;
 		ZLGL_TEXCOORDPOINTER(2, GL_SCALAR, 0, texcoords);
 		ZLGL_VERTEXTPOINTER(2, GL_SCALAR, 0, vertices);
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p++)
@@ -192,15 +193,18 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 			unsigned char charidx = *p-' '-1;
 			if (charidx >= (sizeof(CharWidths)/sizeof(CharWidths[0])) || !CharWidths[charidx]) continue;
 			vbox[6] = vbox[2] = vbox[0] + (scalew * CharWidths[charidx]);
-			memcpy(&texcoords[12*v+0], TextureCoordinates[*p-' '-1]+0, sizeof(texcoords[0])*6);
-			memcpy(&texcoords[12*v+6], TextureCoordinates[*p-' '-1]+2, sizeof(texcoords[0])*6);
-			memcpy(&vertices[12*v+0], vbox+0, sizeof(texcoords[0])*6);
-			memcpy(&vertices[12*v+6], vbox+2, sizeof(texcoords[0])*6);
+			if (charLimit == -1 || charIndex < charLimit) {
+				memcpy(&texcoords[12 * v + 0], TextureCoordinates[*p - ' ' - 1] + 0, sizeof(texcoords[0]) * 6);
+				memcpy(&texcoords[12 * v + 6], TextureCoordinates[*p - ' ' - 1] + 2, sizeof(texcoords[0]) * 6);
+				memcpy(&vertices[12 * v + 0], vbox + 0, sizeof(texcoords[0]) * 6);
+				memcpy(&vertices[12 * v + 6], vbox + 2, sizeof(texcoords[0]) * 6);
+			}
 			if (++v==VBSIZE) {
 				glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*VBSIZE);
 				v = 0;
 			}
 			vbox[4] = vbox[0] = vbox[2] + cs;
+			charIndex++;
 		}
 		if (v) glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*v);
 	}
@@ -222,6 +226,7 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 		vbox[0] = vbox[4] = 0;                   //left
 		width = 0;
 		int vv = 0;
+		int charIndex = 0;
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p++)
 		{
 			if (*p == '\r') continue;
@@ -230,12 +235,15 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 			unsigned char charidx = *p-' '-1;
 			if (charidx >= (sizeof(CharWidths)/sizeof(CharWidths[0])) || !CharWidths[charidx]) continue;
 			vbox[6] = vbox[2] = vbox[0] + CharWidths[charidx];
-			memcpy(&texcoords[vv+0], TextureCoordinates[*p-' '-1]+0, sizeof(texcoords[0])*6);
-			memcpy(&texcoords[vv+6], TextureCoordinates[*p-' '-1]+2, sizeof(texcoords[0])*6);
-			memcpy(&vertices[vv+0], vbox+0, sizeof(vertices[0])*6);
-			memcpy(&vertices[vv+6], vbox+2, sizeof(vertices[0])*6);
+			if (charLimit == -1 || charIndex < charLimit) {
+				memcpy(&texcoords[vv + 0], TextureCoordinates[*p - ' ' - 1] + 0, sizeof(texcoords[0]) * 6);
+				memcpy(&texcoords[vv + 6], TextureCoordinates[*p - ' ' - 1] + 2, sizeof(texcoords[0]) * 6);
+				memcpy(&vertices[vv + 0], vbox + 0, sizeof(vertices[0]) * 6);
+				memcpy(&vertices[vv + 6], vbox + 2, sizeof(vertices[0]) * 6);
+			}
 			vbox[4] = vbox[0] = vbox[2] + fCharSpacing;
 			vv += 12;
+			charIndex++;
 		}
 		if (vbox[2] > width) width = vbox[2];
 		height = 0 - (vbox[1] - fLineHeight*s(0.8));
@@ -477,6 +485,7 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 		unsigned char sz;
 		unsigned short cd;
 		width = 0;
+		int charIndex = 0;
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p += sz)
 		{
 			if (*p == '\r') { sz = 1; continue; }
@@ -487,13 +496,16 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 			const Char& c = chars.Get(cd);
 			if (c.tex < 0) { x += fSpaceWidth + fCharSpacing; continue; }
 			int vv = 12 * (vecTTFTexLastIndex->operator[](c.tex)++);
-			memcpy(&texcoords[vv+0], c.TextureCoordinates+0, sizeof(texcoords[0])*6);
-			memcpy(&texcoords[vv+6], c.TextureCoordinates+2, sizeof(texcoords[0])*6);
+			if (charLimit == -1 || charIndex < charLimit) {
+				memcpy(&texcoords[vv+0], c.TextureCoordinates+0, sizeof(texcoords[0])*6);
+				memcpy(&texcoords[vv+6], c.TextureCoordinates+2, sizeof(texcoords[0])*6);
+			}
 			vertices[vv+0] = vertices[vv+4] = vertices[vv+ 8] = x + c.offx;             //left
 			vertices[vv+2] = vertices[vv+6] = vertices[vv+10] = vertices[vv] + c.width; //right
 			vertices[vv+5] = vertices[vv+9] = vertices[vv+11] = y - c.offy;             //top
 			vertices[vv+1] = vertices[vv+3] = vertices[vv+ 7] = vertices[vv+5] - lh;    //bottom
 			x += c.advance + fCharSpacing;
+			charIndex++;
 		}
 		height = 0 - (y - fLineHeight);
 		if (x - fCharSpacing + olr > width) width = x - fCharSpacing + olr;
@@ -521,6 +533,7 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 		ZLGL_VERTEXTPOINTER(2, GL_SCALAR, 0, vertices);
 		GLscalar cs = fCharSpacing, lh = (scaleh * (fLineHeight+(olt+olb)));
 		int v = 0;
+		int charIndex = 0;
 		signed char last_tex = -1;
 		unsigned char sz;
 		unsigned short cd;
@@ -541,14 +554,17 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 				glBindTexture(GL_TEXTURE_2D, gltexids[last_tex]);
 			}
 			int vv = 12 * v++;
-			memcpy(&texcoords[vv+0], c.TextureCoordinates+0, sizeof(texcoords[0])*6);
-			memcpy(&texcoords[vv+6], c.TextureCoordinates+2, sizeof(texcoords[0])*6);
+			if (charLimit == -1 || charIndex < charLimit) {
+				memcpy(&texcoords[vv+0], c.TextureCoordinates+0, sizeof(texcoords[0])*6);
+				memcpy(&texcoords[vv+6], c.TextureCoordinates+2, sizeof(texcoords[0])*6);
+			}
 			vertices[vv+0] = vertices[vv+4] = vertices[vv+ 8] = x + (c.offx*scalew);               //left
 			vertices[vv+2] = vertices[vv+6] = vertices[vv+10] = vertices[vv+0] + (c.width*scalew); //right
 			vertices[vv+5] = vertices[vv+9] = vertices[vv+11] = y - (c.offy*scaleh);               //top
 			vertices[vv+1] = vertices[vv+3] = vertices[vv+ 7] = vertices[vv+5] - lh;               //bottom
 			if (v == VBSIZE) { glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*VBSIZE); v = 0; }
 			x += (c.advance + cs) * scalew;
+			charIndex++;
 		}
 		if (v) glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*v);
 	}
