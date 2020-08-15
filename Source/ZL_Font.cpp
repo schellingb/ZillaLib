@@ -182,11 +182,12 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 		vbox[1] = vbox[3] = y - lh*s(0.2); //bottom
 		vbox[0] = vbox[4] = x;             //left
 		int v = 0;
-		int charIndex = 0;
+		int charIndex = -1;
 		ZLGL_TEXCOORDPOINTER(2, GL_SCALAR, 0, texcoords);
 		ZLGL_VERTEXTPOINTER(2, GL_SCALAR, 0, vertices);
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p++)
 		{
+			++charIndex;
 			if (*p == '\r') continue;
 			if (*p == '\n') { vbox[4] = vbox[0] = x; vbox[7] = vbox[5] -= (lh + (scaleh * fLineSpacing)); vbox[1] = vbox[3] -= (lh + (scaleh * fLineSpacing)); continue; }
 			if (*p <= ' ') { vbox[4] = vbox[0] = vbox[0] + (scalew * fSpaceWidth) + cs; continue; }
@@ -204,7 +205,6 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 				v = 0;
 			}
 			vbox[4] = vbox[0] = vbox[2] + cs;
-			charIndex++;
 		}
 		if (v) glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*v);
 	}
@@ -226,9 +226,10 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 		vbox[0] = vbox[4] = 0;                   //left
 		width = 0;
 		int vv = 0;
-		int charIndex = 0;
+		int charIndex = -1;
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p++)
 		{
+			++charIndex;
 			if (*p == '\r') continue;
 			if (*p == '\n') { if (vbox[2] > width) width = vbox[2]; vbox[4] = vbox[0] = 0; vbox[7] = vbox[5] -= (fLineHeight + fLineSpacing); vbox[1] = vbox[3] -= (fLineHeight + fLineSpacing); continue; }
 			if (*p <= ' ') { vbox[4] = vbox[0] = vbox[0] + fSpaceWidth + fCharSpacing; continue; }
@@ -243,7 +244,6 @@ struct ZL_FontBitmap_Impl : ZL_Font_Impl
 			}
 			vbox[4] = vbox[0] = vbox[2] + fCharSpacing;
 			vv += 12;
-			charIndex++;
 		}
 		if (vbox[2] > width) width = vbox[2];
 		height = 0 - (vbox[1] - fLineHeight*s(0.8));
@@ -485,9 +485,10 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 		unsigned char sz;
 		unsigned short cd;
 		width = 0;
-		int charIndex = 0;
+		int charIndex = -1;
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p += sz)
 		{
+			++charIndex;
 			if (*p == '\r') { sz = 1; continue; }
 			if (*p == '\n') { sz = 1; if (x - fCharSpacing + olr > width) width = x - fCharSpacing + olr; x = 0; y -= (fLineHeight + fLineSpacing); continue; }
 			if (*p <= ' ' ) { sz = 1; x += fSpaceWidth + fCharSpacing; continue; }
@@ -505,7 +506,6 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 			vertices[vv+5] = vertices[vv+9] = vertices[vv+11] = y - c.offy;             //top
 			vertices[vv+1] = vertices[vv+3] = vertices[vv+ 7] = vertices[vv+5] - lh;    //bottom
 			x += c.advance + fCharSpacing;
-			charIndex++;
 		}
 		height = 0 - (y - fLineHeight);
 		if (x - fCharSpacing + olr > width) width = x - fCharSpacing + olr;
@@ -533,12 +533,13 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 		ZLGL_VERTEXTPOINTER(2, GL_SCALAR, 0, vertices);
 		GLscalar cs = fCharSpacing, lh = (scaleh * (fLineHeight+(olt+olb)));
 		int v = 0;
-		int charIndex = 0;
+		int charIndex = -1;
 		signed char last_tex = -1;
 		unsigned char sz;
 		unsigned short cd;
 		for (const unsigned char *p = (const unsigned char*)text, *pEnd = (limitCount ? p + limitCount : (unsigned char*)-1); *p && p < pEnd; p += sz)
 		{
+			++charIndex;
 			if (*p == '\r') { sz = 1; continue; }
 			if (*p == '\n') { sz = 1; x = xleft; y -= ((fLineHeight+fLineSpacing)*scaleh); continue; }
 			if (*p <= ' ' ) { sz = 1; x += (fSpaceWidth + cs) * scalew; continue; }
@@ -564,7 +565,6 @@ struct ZL_FontTTF_Impl : ZL_Font_Impl
 			vertices[vv+1] = vertices[vv+3] = vertices[vv+ 7] = vertices[vv+5] - lh;               //bottom
 			if (v == VBSIZE) { glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*VBSIZE); v = 0; }
 			x += (c.advance + cs) * scalew;
-			charIndex++;
 		}
 		if (v) glDrawArraysUnbuffered(GL_TRIANGLES, 0, 6*v);
 	}
