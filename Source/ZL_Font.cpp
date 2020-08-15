@@ -37,6 +37,7 @@ struct ZL_Font_Impl : ZL_Impl, ZL_Font_Impl_Settings
 {
 	scalar fCharSpacing, fLineSpacing, fLineHeight, fSpaceWidth;
 	int limitCount;
+	int charLimit;
 	bool draw_at_baseline;
 	ZL_Font_Impl(bool draw_at_baseline) : fCharSpacing(0), fLineSpacing(0), fLineHeight(0), fSpaceWidth(0), limitCount(0), draw_at_baseline(draw_at_baseline) { }
 	virtual ~ZL_Font_Impl() {}
@@ -736,6 +737,7 @@ void ZL_Font::Draw(const ZL_Vector &p, const char *text, scalar scalew, scalar s
 { if (impl) impl->Draw(p.x, p.y, text, scalew, scaleh, color, draw_at_origin); }
 
 void ZL_Font::RequestCharLimit(int limitCount) { impl->limitCount = limitCount; }
+void ZL_Font::DrawCharLimit(int charLimit) { impl->charLimit = charLimit; }
 
 /* alternative using parameter struct for 2 or more options instead of that many overloaded draw methods
 void Draw(const ZL_Vector &p, const char *text, scalar scale) const;

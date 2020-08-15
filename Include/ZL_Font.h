@@ -201,6 +201,7 @@ struct ZL_Font
 
 	// Requests a limit of the number of bytes processed for the next call to GetWidth/GetHeight/GetDimensions/Draw/CreateBuffer
 	void RequestCharLimit(int limitCount);
+	void DrawCharLimit(int charLimit);
 
 	private: struct ZL_Font_Impl* impl;
 };
