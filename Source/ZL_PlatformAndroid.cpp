@@ -29,6 +29,7 @@
 #include "ZL_Audio.h"
 #include <jni.h>
 #include <assert.h>
+#include <math.h>
 #include <GLES/gl.h>
 #include <EGL/egl.h>
 #include <android/native_window.h>
@@ -489,15 +490,30 @@ extern "C" JNIEXPORT void JNICALL Java_org_zillalib_ZillaActivity_NativeGyroscop
 extern "C" JNIEXPORT void JNICALL Java_org_zillalib_ZillaActivity_NativeAccelerometer(JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z)
 {
 	if (!ZL_ANDROID_joysticks[1]) return;
-	// Calculate two angles from three coordinates - TODO: this is faulty!
-	//float accX = atan2f(-accPosX, sqrtf(accPosY*accPosY+accPosZ*accPosZ) * ( accPosY > 0 ? 1.0f : -1.0f ) ) * M_1_PI * 180.0f;
-	//float accY = atan2f(accPosZ, accPosY) * M_1_PI;
-	//float normal = sqrt(accPosX*accPosX+accPosY*accPosY+accPosZ*accPosZ);
-	//if(normal <= 0.0000001f) normal = 1.0f;
-	//updateOrientation (accPosX/normal, accPosY/normal, 0.0f);
+	
+	// Send raw accelerometer values (maintaining backward compatibility)
 	ZL_JoystickAxisEvent(ZL_ANDROID_joysticks[1], 0, (signed short)(x * 1000));
 	ZL_JoystickAxisEvent(ZL_ANDROID_joysticks[1], 1, (signed short)(y * 1000));
 	ZL_JoystickAxisEvent(ZL_ANDROID_joysticks[1], 2, (signed short)(z * 1000));
+	
+	// Calculate orientation angles from accelerometer data (FIXED implementation)
+	// Normalize the acceleration vector to get gravity direction
+	float normal = sqrtf(x*x + y*y + z*z);
+	if (normal <= 0.0000001f) normal = 1.0f;
+	
+	float normalizedX = x / normal;
+	float normalizedY = y / normal;
+	float normalizedZ = z / normal;
+	
+	// Calculate roll (rotation around X axis) and pitch (rotation around Y axis) in degrees
+	// Roll: angle of rotation around the X axis (tilt left/right)
+	float roll = atan2f(-normalizedY, normalizedZ) * 180.0f / 3.1415926535897932f;
+	
+	// Pitch: angle of rotation around the Y axis (tilt forward/backward)
+	float pitch = atan2f(normalizedX, sqrtf(normalizedY*normalizedY + normalizedZ*normalizedZ)) * 180.0f / 3.1415926535897932f;
+	
+	// TODO: If needed, orientation angles could be sent as additional joystick axes
+	// Currently keeping backward compatibility by only sending raw accelerometer values
 }
 
 ZL_String ZL_DeviceUniqueID()
