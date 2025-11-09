@@ -421,9 +421,9 @@ void ZL_UpdateTPFLimit()
 {
 	SDL_DisplayMode DisplayMode = { 0, 0, 0, 0, 0 };
 	SDL_GetCurrentDisplayMode(0, &DisplayMode);
-	if (!DisplayMode.refresh_rate) DisplayMode.refresh_rate = 60; // at least matches on VMWare running Linux
-	float TPFRate = (ZL_TPF_Limit ? ZL_TPF_Limit / (1000.0f / DisplayMode.refresh_rate) : 0), TPFRateFrac = (TPFRate - (int)TPFRate);
-	bool UseVSync = (TPFRate && (TPFRateFrac <= 0.01f || TPFRateFrac >= 0.99f)), setSwapSucceeded = (SDL_GL_SetSwapInterval(UseVSync ? 1 : 0) == 0);
+	//if (!DisplayMode.refresh_rate) DisplayMode.refresh_rate = 60; // at least matches on VMWare running Linux
+	float RRate = (float)DisplayMode.refresh_rate, TPFRate = ((ZL_TPF_Limit && RRate) ? ZL_TPF_Limit / (1000.0f / RRate) : 0); //, TPFRateFrac = (TPFRate - (int)TPFRate);
+	bool UseVSync = (TPFRate && TPFRate <= 1.01f && TPFRate >= 0.99f), setSwapSucceeded = (SDL_GL_SetSwapInterval(UseVSync ? 1 : 0) == 0);
 	//ZL_LOG4("VSYNC", "Refresh Rate: %d - Want VSync: %d - Setting VSync Succeeded: %d - Actual Swap Interval: %d", DisplayMode.refresh_rate, (int)UseVSync, (int)setSwapSucceeded, (int)SDL_GL_GetSwapInterval());
 	UseVSync = (setSwapSucceeded && UseVSync);
 	ZL_MainApplicationFlags = (UseVSync ? ZL_MainApplicationFlags | ZL_APPLICATION_HASVSYNC : ZL_MainApplicationFlags & ~ZL_APPLICATION_HASVSYNC);
