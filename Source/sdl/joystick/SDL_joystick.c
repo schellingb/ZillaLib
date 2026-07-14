@@ -137,10 +137,30 @@ SDL_JoystickOpen(int device_index)
     }
 
     joystickname = SDL_SYS_JoystickNameForDeviceIndex( device_index );
+
+    /* ZL FIX: Enforce a joystick name string existing */
+    if (!joystickname)
+        joystickname = "Joystick";
+
     if ( joystickname )
         joystick->name = SDL_strdup( joystickname );
     else
         joystick->name = NULL;
+
+    /* ZL FIX: Make joystick names unique */
+    if (joystickname) {
+        int counter = 2;
+        retryuniquename:
+        for (joysticklist = SDL_joysticks; joysticklist; joysticklist = joysticklist->next) {
+            if (joysticklist->name && !SDL_strcmp(joysticklist->name, joystick->name)) {
+                const size_t newlen = SDL_strlen(joystickname) + 10;
+                SDL_free(joystick->name);
+                joystick->name = (char*)SDL_malloc(newlen);
+                SDL_snprintf(joystick->name, newlen, "%s #%d", joystickname, counter++);
+                goto retryuniquename;
+            }
+        }
+    }
 
     if (joystick->naxes > 0) {
         joystick->axes = (Sint16 *) SDL_malloc
