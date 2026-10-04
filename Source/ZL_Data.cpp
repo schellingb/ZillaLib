@@ -1,6 +1,6 @@
 /*
   ZillaLib
-  Copyright (C) 2010-2020 Bernhard Schelling
+  Copyright (C) 2010-2026 Bernhard Schelling
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -187,7 +187,7 @@ private:
 		if (!ListEndChar) { Type = PARSE_ERROR; return p; }
 
 		p = EndOfWhitespace(p+1);
-		if (*p == ListEndChar) { Type = (ListEndChar == ']' ? ZL_Json::TYPE_OBJECT : ZL_Json::TYPE_OBJECT); DataChildren = NULL; return p+1; }
+		if (*p == ListEndChar) { Type = (ListEndChar == ']' ? ZL_Json::TYPE_ARRAY : ZL_Json::TYPE_OBJECT); DataChildren = NULL; return p+1; }
 		ZL_JSON_Impl* Child;
 		for (DataChildren = new std::vector<ZL_JSON_Impl*>(), Type = PARSE_ERROR; (Child = new ZL_JSON_Impl); p = EndOfWhitespace(p+1))
 		{
