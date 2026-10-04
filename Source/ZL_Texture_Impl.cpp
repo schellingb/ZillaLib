@@ -294,7 +294,7 @@ ZL_Texture_Impl::ZL_Texture_Impl() : gltexid(0), wraps(GL_CLAMP_TO_EDGE), wrapt(
 
 ZL_Texture_Impl::~ZL_Texture_Impl()
 {
-	if (!pFrameBuffer)
+	if (!pFrameBuffer && pLoadedTextures)
 		for (std::map<ZL_FileLink, ZL_Texture_Impl*>::iterator it = pLoadedTextures->begin(); it != pLoadedTextures->end(); ++it)
 			if (it->second == this) { pLoadedTextures->erase(it); break; }
 	if (pFrameBuffer)
